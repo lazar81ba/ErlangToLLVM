@@ -72,6 +72,7 @@ public class Scanner {
             case '}': addToken(TokenType.RIGHT_BRACE); break;
             case '[': addToken(TokenType.LEFT_TABLE); break;
             case ']': addToken(TokenType.RIGHT_TABLE); break;
+            case '|': addToken(TokenType.PIPE); break;
             case '?': addToken(TokenType.QUESTION_MARK); break;
             case '!': addToken(TokenType.EXCLAMATION_MARK); break;
             case '$': addToken(TokenType.DOLAR_MARK); break;
