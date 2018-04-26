@@ -1,0 +1,300 @@
+%{
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+
+%}
+
+%class     Test
+%interface TestTokens
+%semantic  String:yylval
+%get       token
+%next      yylex()
+
+%token '+' '-' '*' '/' '(' ')' '{' '}' '[' ']' '|' '?' '!' '$' ':' '\'' ',' '.' ';' '<' '>' ARROW EQUAL LESS_EQUAL GREATER_EQUAL BANG_EQUAL AFTER AND ANDALSO BAND BEGIN BNOT BOR BSL BSR BXOR CASE CATCH COND DIV END FUN IF LET NOT OF OR ORELSE QUERY RECEIVE REM TRY WHEN XOR EOF NUMBER IDENTIFIER STRING
+%left  '+' '-'
+%left  '*' '/'
+
+%%
+
+prog : expr             { System.out.println($1); }
+     ;
+expr : IDENTIFIER	{ $$ = $1  }
+     | ARROW    	{ $$ = $1; }
+     | '('    		{ $$ = $1; }
+     | ')'    		{ $$ = $1; }
+     | '['    		{ $$ = $1; }
+     | ']'    		{ $$ = $1; }
+     | STRING    	{ $$ = $1; }
+     | '.'    		{ $$ = $1; }
+     | '-'    		{ $$ = $1; }
+     | '/'    		{ $$ = $1; }
+     ;
+
+
+%%
+
+private void yyerror(String msg) {
+    System.out.println("ERROR: " + msg);
+    System.exit(1);
+  }
+
+//Scanner part
+
+    private String source;
+    private int start = 0;
+    private int current = 0;
+    private int line = 1;
+
+ public void setSourceScanner(String source) {
+        this.source = source;
+    }
+
+  int token;
+  String yylval;
+
+int yylex() {
+        while (!isAtEnd()) {
+	    token=scanToken();
+	    if(token!=0)
+            	return token;
+        }
+
+        return token=EOF;
+    }
+
+ private boolean isAtEnd() {
+        return current >= source.length();
+    }
+
+private int scanToken() {
+        char c = advance();
+        switch (c) {
+            case '(': return '(';
+            case ')': return ')';
+            case '{': return '{';
+            case '}': return '}';
+            case '[': return '[';
+            case ']': return ']';
+            case '|': return '|';
+            case '?': return '?';
+            case '!': return '!';
+            case '$': return '$';
+            case ':': return ':';
+            case '\'': return '\'';
+            case ',': return ',';
+            case '.': return '.';
+            case '-': if(match('>')) 
+			 return ARROW;
+		      else
+			 return '-';
+            case '+': return '+';
+            case ';': return ';';
+            case '*': return '*';
+            case '<': if(match('='))
+		 	 return LESS_EQUAL;
+		      else 
+			 return '<';
+            case '>': if(match('='))
+			 return GREATER_EQUAL;
+		      else
+			 return '>';
+            case '/': if(match('='))
+			 return BANG_EQUAL;
+		      else
+			 return '/';
+            case '=':
+                if(match('='))
+                    return EQUAL;
+            case '%':
+                while (peek() != '\n' && !isAtEnd()) advance();
+		return 0; //return 0 to do nothing
+            case ' ': return 0;
+            case '\r': return 0;
+            case '\t': return 0;
+                // Ignore whitespace.
+            case '\n':
+                line++;
+		return 0;
+            case '"': return string(); //TODO
+            default:
+                if (isDigit(c)) {
+                    number();
+                } else if (isAlpha(c)) {
+                    return identifier();
+                } else {
+                    yyerror(line, "Unexpected character.");
+                }
+		return 0;
+        }
+    }
+
+//Helper functions
+
+
+private int identifier() {
+        while (isAlphaNumeric(peek())) advance();
+
+        // See if the identifier is a reserved word.
+        String text = source.substring(start, current);
+
+	switch (text) {
+		case "after": return AFTER;
+		case "and": return AND;
+		case "andalso": return ANDALSO;
+		case "band": return BAND;
+		case "begin": return BEGIN;
+		case "bnot": return BNOT;
+		case "bor": return BOR;
+		case "bsl": return BSL;
+		case "bsr": return BSR;
+		case "bxor": return BXOR;
+		case "case": return CASE;
+		case "catch": return CATCH;
+		case "cond": return COND;
+		case "div": return DIV;
+		case "end": return END;
+		case "fun": return FUN;
+		case "if": return IF;
+		case "let": return LET;
+		case "not": return NOT;
+		case "of": return OF;
+		case "or": return OR;
+		case "orelse": return ORELSE;
+		case "query": return QUERY;
+		case "receive": return RECEIVE;
+		case "rem": return REM;
+		case "try": return TRY;
+		case "whon": return WHEN;
+		case "xor": return XOR;
+		default: return IDENTIFIER;
+	}
+    }
+
+    private boolean isAlpha(char c) {
+        return (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                c == '_';
+    }
+
+    private boolean isAlphaNumeric(char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
+    private int number() {
+        while (isDigit(peek())) advance();
+
+        // Look for a fractional part.
+        if (peek() == '.' && isDigit(peekNext())) {
+            // Consume the "."
+            advance();
+
+            while (isDigit(peek())) advance();
+        }
+	yylval = source.substring(start, current);
+        return NUMBER;
+    }
+
+    private char peekNext() {
+        if (current + 1 >= source.length()) return '\0';
+        return source.charAt(current + 1);
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private int string() {
+        while (peek() != '"' && !isAtEnd()) {
+            if (peek() == '\n') line++;
+            advance();
+        }
+
+        // Unterminated string.
+        if (isAtEnd()) {
+            yyerror(line, "Unterminated string.");
+            return 0;
+        }
+
+        // The closing ".
+        advance();
+
+        // Trim the surrounding quotes.
+        yylval= source.substring(start + 1, current - 1);
+        return STRING;
+    }
+
+    private char peek() {
+        if (isAtEnd()) return '\0';
+        return source.charAt(current);
+    }
+
+    private boolean match(char expected) {
+        if (isAtEnd()) return false;
+        if (source.charAt(current) != expected) return false;
+
+        current++;
+        return true;
+    }
+
+    private char advance() {
+        current++;
+        return source.charAt(current - 1);
+    }
+
+
+//Main part
+
+static boolean hadError = false;
+
+    public static void main(String[] args) throws IOException {
+        if (args.length > 1) {
+            System.out.println("Usage: erl [script]");
+        } else if (args.length == 1) {
+            runFile(args[0]);
+        } else {
+            runPrompt();
+        }
+    }
+
+    private static void runFile(String path) throws IOException {
+        byte[] bytes = Files.readAllBytes(Paths.get(path));
+        run(new String(bytes, Charset.defaultCharset()));
+
+        // Indicate an error in the exit code.
+        if (hadError) System.exit(65);
+    }
+
+    private static void runPrompt() throws IOException {
+        InputStreamReader input = new InputStreamReader(System.in);
+        BufferedReader reader = new BufferedReader(input);
+
+        for (;;) {
+            System.out.print("> ");
+            run(reader.readLine());
+            hadError = false;
+        }
+    }
+
+    private static void run(String source) {
+        Test test = new Test();
+	test.setSourceScanner(source);
+        test.yylex();
+	test.parse();
+    }
+
+    private static void yyerror(int line, String message)  { //Nie wiem czy zadziala
+        report(line, "", message);
+    }
+
+    private static void report(int line, String where, String message) {
+        System.err.println(
+                "[line " + line + "] Error" + where + ": " + message);
+        hadError = true;
+    }
+
+
