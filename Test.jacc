@@ -15,13 +15,14 @@ import java.util.List;
 %get       token
 %next      yylex()
 
-%token '+' '-' '*' '/' '(' ')' '{' '}' '[' ']' '|' '?' '!' '$' ':' '\'' ',' '.' ';' '<' '>' ARROW EQUAL LESS_EQUAL GREATER_EQUAL BANG_EQUAL AFTER AND ANDALSO BAND BEGIN BNOT BOR BSL BSR BXOR CASE CATCH COND DIV END FUN IF LET NOT OF OR ORELSE QUERY RECEIVE REM TRY WHEN XOR EOF NUMBER IDENTIFIER STRING
+%token '+' '-' '*' '/' '(' ')' '{' '}' '[' ']' '|' '?' '!' '$' ':' '\'' ',' '.' ';' '<' '>' ARROW EQUAL LESS_EQUAL GREATER_EQUAL BANG_EQUAL AFTER AND ANDALSO BAND BEGIN BNOT BOR BSL BSR BXOR CASE CATCH COND DIV END FUN IF LET NOT OF OR ORELSE QUERY RECEIVE REM TRY WHEN XOR NUMBER IDENTIFIER STRING
 %left  '+' '-'
 %left  '*' '/'
 
 %%
 
 prog : expr             { System.out.println($1); }
+     | prog expr	{ System.out.println($2); }
      ;
 expr : IDENTIFIER	{ $$ = $1  }
      | ARROW    	{ $$ = $1; }
@@ -33,6 +34,7 @@ expr : IDENTIFIER	{ $$ = $1  }
      | '.'    		{ $$ = $1; }
      | '-'    		{ $$ = $1; }
      | '/'    		{ $$ = $1; }
+     | ':'    		{ $$ = $1; }
      ;
 
 
@@ -59,12 +61,13 @@ private void yyerror(String msg) {
 
 int yylex() {
         while (!isAtEnd()) {
+      
 	    token=scanToken();
 	    if(token!=0)
             	return token;
         }
 
-        return token=EOF;
+        return ENDINPUT;
     }
 
  private boolean isAtEnd() {
@@ -141,7 +144,7 @@ private int identifier() {
 
         // See if the identifier is a reserved word.
         String text = source.substring(start, current);
-
+	yylval = text;
 	switch (text) {
 		case "after": return AFTER;
 		case "and": return AND;
