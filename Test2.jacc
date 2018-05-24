@@ -746,7 +746,7 @@ static boolean hadError = false;
     }
 
     private static void run(String source) {
-        Test test = new Test();
+        Test2 test = new Test2();
 	test.setSourceScanner(source);
         test.yylex();
 	test.parse();
