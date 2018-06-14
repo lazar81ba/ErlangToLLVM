@@ -206,7 +206,7 @@ expr_300 : expr_400 list_op expr_300				{  }
      | expr_400							{ $$ = $1; }
      ;
 
-expr_400 : expr_400 add_op expr_500				{  }
+expr_400 : expr_400 add_op expr_500				{ $$ = plusMinus($1, $3); }
      | expr_500							{ $$ = $1; }
      ;
 
@@ -411,8 +411,8 @@ atomic : CHAR							{ objectTypes.put($1,"char"); $$ = $1 ;}
      ;
 
 
-prefix_op : '+'						{  }
-     |	'-'							{  }
+prefix_op : '+'						{ $$ = $1; }
+     |	'-'							{ $$ = $1; }
      |	BNOT							{  }
      |	NOT							{  }
      ;
@@ -425,8 +425,8 @@ mult_op : '/'							{  }
      |	AND							{  }
      ;
 
-add_op : '+'							{  }
-     |	'-'							{  }
+add_op : '+'							{ operator = "+"; }
+     |	'-'							{ operator = "-"; }
      |	BOR							{  }
      |	BXOR							{  }
      |	BSL							{  }
@@ -476,10 +476,21 @@ private void yyerror(String msg) {
    private static Function function= new Function();
    private static List<String> expressions = new LinkedList<>();
    private static Map<String,String> objectTypes = new LinkedHashMap<>();
+   private static String operator = new String();
 
    private static interface FunctionComponent{
        public String generateComponent();
 
+   }
+
+    private static double plusMinus(String first, String second) {
+       double first = Double.parseDouble(first);
+       double second = Double.parseDouble(second);
+       if(operator.equals("+")) {
+           return first + second;
+       } else {
+           return first - second;
+       }
    }
 
    private static class Function implements FunctionComponent{
