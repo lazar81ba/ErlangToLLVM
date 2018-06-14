@@ -1,13 +1,4 @@
 
--module(test1).
-
-%% API
--export([]).
-
--export([start/0, start/1, start/2]).
-
--export([init/2, l/2]).
-
 %%
 %% Interface: start( Port , {Mod, Fun} )
 %%
@@ -89,4 +80,3 @@ ll(S, U) ->
       io:format("getty:ll(~p, ~p) got msg ~p~n", [S, U, Other]),
       ll(S, U)
   end.
-
