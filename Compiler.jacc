@@ -27,7 +27,7 @@
 %%
 
 form : attribute '.'           					       {  }
-     | function '.'						                 { generateFunctionDefinition(); }
+     | function '.'						                 {  }
      | rule '.'							                   { }
      ;
 
@@ -164,15 +164,15 @@ attr_val : expr						{  }
 function : function_clauses					{  }
      ;
 
-function_clauses : function_clause				{  }
-     | function_clause ';' function_clauses			{  }
+function_clauses : function_clause				{ generateFunctionDefinition(); }
+     | function_clause ';' function_clauses			{ generateFunctionDefinition(); }
      ;
 
 function_clause : ATOM clause_args clause_guard clause_body 	{  }
-     | ATOM clause_args clause_body {}
+     | ATOM clause_args clause_body { function.functionName = $1; }
      ;
 
-clause_args : argument_list					{  }
+clause_args : argument_list					{ createFunctionArguments(); }
      ;
 
 clause_guard : WHEN guard					{  }
@@ -182,58 +182,58 @@ clause_body : ARROW exprs					{  }
      ;
 
 expr : CATCH expr						{  }
-     | expr_100							{  }
+     | expr_100							{ $$ = $1; }
      ;
 
 expr_100 : expr_150 '=' expr_100 				{  }
      | expr_150 '!' expr_100					{  }
-     | expr_150							{  }
+     | expr_150							{ $$ = $1; }
      ;
 
 expr_150 : expr_160 ORELSE expr_150				{  }
-     | expr_160							{  }
+     | expr_160							{ $$ = $1; }
      ;
 
 expr_160 : expr_200 ANDALSO expr_160				{  }
-     | expr_200							{  }
+     | expr_200							{ $$ = $1; }
      ;
 
 expr_200 : expr_300 comp_op expr_300				{  }
-     | expr_300							{  }
+     | expr_300							{ $$ = $1 ;}
      ;
 
 expr_300 : expr_400 list_op expr_300				{  }
-     | expr_400							{  }
+     | expr_400							{ $$ = $1; }
      ;
 
 expr_400 : expr_400 add_op expr_500				{  }
-     | expr_500							{  }
+     | expr_500							{ $$ = $1; }
      ;
 
 expr_500 : expr_500 mult_op expr_600				{  }
-     | expr_600							{  }
+     | expr_600							{ $$ = $1; }
      ;
 
 expr_600 : prefix_op expr_700					{  }
-     | expr_700							{  }
+     | expr_700							{ $$ = $1; }
      ;
 
 expr_700 : function_call					{  }
      | record_expr						{  }
-     | expr_800							{  }
+     | expr_800							{ $$ = $1 ;}
      ;
 
-expr_800 : expr_900 ':' expr_max				{  }
-     | expr_900							{  }
+expr_800 : expr_900 ':' expr_max				{ $$ = $1 + ':' + $3 ;}
+     | expr_900							{ $$ = $1 ;}
      ;
 
 expr_900 : '.' ATOM						{  }
      | expr_900	'.' ATOM					{  }
-     | expr_max							{  }
+     | expr_max							{ $$ = $1 ;}
      ;
 
-expr_max : ATOM						{  }
-     | atomic							{  }
+expr_max : ATOM						{ $$ = $1; }
+     | atomic							{ $$ = $1; }
      | list							{  }
      | binary							{  }
      | list_comprehension					{  }
@@ -328,7 +328,7 @@ record_fields : record_field					{  }
 record_field : ATOM EQUAL expr					{  }
      ;
 
-function_call : expr_800 argument_list				{  }
+function_call : expr_800 argument_list				{ createFunctionCall($1); }
      ;
 
 if_expr : IF if_clauses END					{  }
@@ -396,23 +396,20 @@ argument_list : '(' ')'					{  }
      |	'(' exprs ')'						{  }
      ;
 
-exprs : expr							{  }
-     |	expr ',' exprs						{  }
+exprs : expr							{ expressions.add($1); }
+     |	expr ',' exprs						{ expressions.add($1); }
      ;
 
 guard : exprs							{  }
      |	exprs ';' guard						{  }
      ;
 
-atomic : CHAR							{  }
-     |	INTEGER 						{  }
-     |	FLOAT 							{  }
-     |	strings 						{  }
+atomic : CHAR							{ objectTypes.put($1,"char"); $$ = $1 ;}
+     |	INTEGER 						{objectTypes.put($1,"int"); $$ = $1 ;}
+     |	FLOAT 							{ objectTypes.put($1,"float"); $$ = $1  ;}
+     |	STRING 						{ objectTypes.put($1,"char[]"); $$ = "\"" + $1 + "\""; }
      ;
 
-strings : STRING						{  }
-     |	STRING strings		 				{  }
-     ;
 
 prefix_op : '+'						{  }
      |	'-'							{  }
@@ -477,6 +474,8 @@ private void yyerror(String msg) {
 //VAR is treated as ATOM, could need change?
 
    private static Function function= new Function();
+   private static List<String> expressions = new LinkedList<>();
+   private static Map<String,String> objectTypes = new LinkedHashMap<>();
 
    private static interface FunctionComponent{
        public String generateComponent();
@@ -486,7 +485,7 @@ private void yyerror(String msg) {
    private static class Function implements FunctionComponent{
        public String functionName = null;
        public List<String> passedArguments = new LinkedList<>();
-       public String functionReturnType = null;
+       public String functionReturnType = "void";
        public Map<String, String> definitionArguments = new LinkedHashMap<>();
        public List<FunctionComponent> functionBody = new LinkedList<>();
 
@@ -508,7 +507,7 @@ private void yyerror(String msg) {
            }
            if(hasParams)
               builder.deleteCharAt(builder.toString().length()-1);
-           builder.append(");");
+           builder.append(");\n");
            return builder.toString();
        }
    }
@@ -535,6 +534,18 @@ private void yyerror(String msg) {
        }
    }
 
+    private static void createFunctionArguments() {
+     function.definitionArguments.putAll(objectTypes);
+     objectTypes.clear();
+   }
+
+   private static void createFunctionCall(String functionName){
+     if(functionName.equals("io:fwrite"))
+      functionName = "printf";
+     function.functionBody.add(new Function(functionName, expressions));
+     expressions.clear();
+
+   }
 
    private static void generateFunctionDefinition() {
 
@@ -559,7 +570,7 @@ private void yyerror(String msg) {
 
            out.append(builder.toString());
            out.close();
-
+           function = new Function();
        } catch(Exception e) {
            System.out.println(e.getMessage());
        }
@@ -821,9 +832,10 @@ private int identifier() {
             function.functionBody.add(test);
         }
 
+
     public static void main(String[] args) throws IOException {
         createCFile();
-        genereteTestFunction();
+        //genereteTestFunction();
         if (args.length > 1) {
             System.out.println("Usage: erl [script]");
         } else if (args.length == 1) {
