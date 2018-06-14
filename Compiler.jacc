@@ -550,6 +550,8 @@ private void yyerror(String msg) {
    private static void generateFunctionDefinition() {
 
        try {
+           if(function.functionName.equals("main"))
+              function.functionReturnType = "int";
            PrintWriter out = new PrintWriter(new FileOutputStream(new File("bin/test.c"), true));
 
            StringBuilder builder = new StringBuilder();
@@ -832,6 +834,19 @@ private int identifier() {
             function.functionBody.add(test);
         }
 
+        private static void genereteLLVMCode() {
+            try{
+                ProcessBuilder builder = new ProcessBuilder("bash", "generateLLVM.sh");
+                builder.inheritIO();
+                Process process = builder.start();
+                int exitCode = process.waitFor();
+            }catch(Exception e){
+              e.printStackTrace();
+            }
+        }
+
+
+
 
     public static void main(String[] args) throws IOException {
         createCFile();
@@ -840,6 +855,7 @@ private int identifier() {
             System.out.println("Usage: erl [script]");
         } else if (args.length == 1) {
             runFile(args[0]);
+            genereteLLVMCode();
         } else {
             runPrompt();
         }
@@ -849,9 +865,9 @@ private int identifier() {
 
     private static void createCFile(){
       try {
-          PrintWriter out = new PrintWriter(new FileOutputStream(new File("bin/test.c"), true));
+          PrintWriter out = new PrintWriter(new File("bin/test.c"));
           if(!fileWasOpened) {
-              out.print("#include <stdio.h>\n \n");
+              out.write("#include <stdio.h>\n \n");
               fileWasOpened = true;
           }
           out.close();
