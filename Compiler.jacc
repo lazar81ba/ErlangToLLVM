@@ -694,7 +694,7 @@ private int scanToken() {
             case '"': return string();
             default:
                 if (isDigit(c)) {
-                    number();
+                    return number();
                 } else if (isAlpha(c)) {
                     return identifier();
                 } else {
@@ -767,9 +767,10 @@ private int identifier() {
             advance();
 
             while (isDigit(peek())) advance();
-	    return FLOAT;
+            yylval = source.substring(start, current);
+	          return FLOAT;
         }
-	yylval = source.substring(start, current);
+	      yylval = source.substring(start, current);
         return INTEGER;
     }
 
