@@ -489,6 +489,9 @@ private void yyerror(String msg) {
    private static interface FunctionComponent{
        public String generateComponent();
        public String getComponentType();
+       public boolean checkName(String name);
+       public String getType();
+       public String getName();
    }
 
    private static class Function implements FunctionComponent{
@@ -508,6 +511,42 @@ private void yyerror(String msg) {
        public void setFunctionReturnType(){
          this.functionReturnType = functionBody.getLast().getComponentType();
        }
+
+       public boolean isComplexFunction(){
+         return functionBody.size() >1;
+       }
+
+      public boolean containsComponent(String componentName){
+        for(FunctionComponent component: functionBody){
+          if(component.checkName(componentName))
+            return true;
+        }
+        return false;
+      }
+
+      public FunctionComponent getComponent(String componentName){
+        for(FunctionComponent component: functionBody){
+          if(component.checkName(componentName))
+            return component;
+        }
+        return null;
+      }
+
+       @Override
+       public boolean checkName(String name){
+         return name.equals(this.functionName);
+       }
+
+       @Override
+       public String getType(){
+         return this.functionReturnType;
+       }
+
+       @Override
+       public String getName(){
+         return this.functionName;
+       }
+
 
        @Override
        public String generateComponent() {
@@ -553,9 +592,25 @@ private void yyerror(String msg) {
        public String getComponentType() {
          return type;
        }
+
+       @Override
+       public boolean checkName(String name){
+         return name.equals(this.name);
+       }
+
+       @Override
+       public String getType(){
+         return this.type;
+       }
+
+       @Override
+       public String getName(){
+         return this.name;
+       }
+
    }
 
-   private static void  createVariable(String name, String value) {
+   private static void createVariable(String name, String value) {
        String type = "float";
        for(Map.Entry<String,String> tmp : objectTypes.entrySet()) {
            if(tmp.getValue().equals(value))
@@ -566,18 +621,6 @@ private void yyerror(String msg) {
        clearExpressions();
    }
 
-   private class MathOperation implements FunctionComponent {
-
-       @Override
-       public String generateComponent() {
-           return null;
-       }
-
-       @Override
-       public String getComponentType() {
-         return null;
-       }
-   }
 
    private static void addFunction(){
      functionList.add(currentFunction);
@@ -590,19 +633,32 @@ private void yyerror(String msg) {
    }
 
    private static void createFunctionCall(String functionName){
+     if(currentFunction.isComplexFunction())
+       if(expressions.size()>0)
+         expressions.remove(0);
+
      if(functionName.equals("io:fwrite")) {
       functionName = "printf";
       for(int i = 0 ; i<expressions.size(); i++) {
           try {
-              float value = Float.parseFloat(expressions.get(i));
-              ((LinkedList)expressions).addFirst("\"%f\"");
-              break;
+              String expression = expressions.get(i);
+              if(currentFunction.containsComponent(expression)){
+                FunctionComponent component  = currentFunction.getComponent(expression);
+                System.out.println(component.getType());
+                if(component.getType().equals("float"))
+                  ((LinkedList)expressions).addFirst("\"%f\"");
+                if(component.getType().equals("int"))
+                  ((LinkedList)expressions).addFirst("\"%d\"");
+                break;
+              }
+              else{
+                float value = Float.parseFloat(expression);
+                ((LinkedList)expressions).addFirst("\"%f\"");
+                break;
+            }
           } catch(Exception e) {
           }
       }
-    } else {
-      if(expressions.size()>0)
-        expressions.remove(0);
     }
      currentFunction.functionBody.add(new Function(functionName, expressions));
      expressions.clear();
