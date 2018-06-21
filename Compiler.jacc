@@ -29,7 +29,7 @@
 form : attribute '.'           					       {  }
      | function '.'						                 {  }
      | rule '.'							                   { }
-     | function '.'	form					                 {  }
+     | function '.'	form					                 { clearExpressions(); }
      ;
 
 attribute : '-' ATOM attr_val					   { }
@@ -219,7 +219,7 @@ expr_600 : prefix_op expr_700					{  }
      | expr_700							{ $$ = $1; }
      ;
 
-expr_700 : function_call					{  }
+expr_700 : function_call					{ }
      | record_expr						{  }
      | expr_800							{ $$ = $1 ;}
      ;
@@ -476,6 +476,7 @@ private void yyerror(String msg) {
 
     private static void clearExpressions(){
         expressions.clear();
+        objectTypes.clear();
     }
 
    private static List<Function> functionList = new LinkedList<>();
@@ -544,7 +545,7 @@ private void yyerror(String msg) {
    private static String createVariable(String name, String value) {
        String type = objectTypes.get(value);
        objectTypes.clear();
-       return type + " " + name + " = " + value + ";";  
+       return type + " " + name + " = " + value + ";";
    }
 
    private class MathOperation implements FunctionComponent {
@@ -758,6 +759,8 @@ private int scanToken() {
                          return EQUAL_BANG_EQUAL;
                      else if(match('='))
                          return EQUAL;
+                    else
+                        return '=';
             case '%':
                 while (peek() != '\n' && !isAtEnd()) advance();
 		return 0; //return 0 to do nothing
