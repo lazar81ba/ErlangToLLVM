@@ -170,7 +170,8 @@ function_clauses : function_clause				{ clearExpressions(); }
      ;
 
 function_clause : ATOM clause_args clause_guard clause_body 	{  }
-     | ATOM clause_args clause_body { currentFunction.functionName = $1; }
+     | ATOM clause_args clause_body { currentFunction.functionName = $1;      ;
+ }
      ;
 
 clause_args : argument_list					{ createFunctionArguments(); }
@@ -219,7 +220,7 @@ expr_600 : prefix_op expr_700					{  }
      | expr_700							{ $$ = $1; }
      ;
 
-expr_700 : function_call					{ }
+expr_700 : function_call					{ clearExpressions();}
      | record_expr						{  }
      | expr_800							{ $$ = $1 ;}
      ;
@@ -546,6 +547,7 @@ private void yyerror(String msg) {
      System.out.println(name + " " + value);
        String type = objectTypes.get(value);
        objectTypes.clear();
+       clearExpressions();
        return type + " " + name + " = " + value + ";";
    }
 
@@ -583,7 +585,10 @@ private void yyerror(String msg) {
           } catch(Exception e) {
           }
       }
-     }
+    } else {
+      if(expressions.size()>0)
+        expressions.remove(0);
+    }
      currentFunction.functionBody.add(new Function(functionName, expressions));
      expressions.clear();
 
