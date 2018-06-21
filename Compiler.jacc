@@ -187,7 +187,7 @@ expr : CATCH expr						{  }
      | expr_100							{ $$ = $1; expressions.add($1); }
      ;
 
-expr_100 : expr_150 '=' expr_100 				{ createVariable($1,$3); }
+expr_100 : expr_150 '=' expr_100 				{createVariable($1,$3);}
      | expr_150 '!' expr_100					{  }
      | expr_150							{ $$ = $1; }
      ;
@@ -531,24 +531,39 @@ private void yyerror(String msg) {
    }
 
 
-   private class Variable implements FunctionComponent {
+   private static class Variable implements FunctionComponent {
+      private String type;
+      private String name;
+      private String value;
+
+      public Variable(){}
+
+        public Variable(String type, String name, String value){
+          this.type =type;
+          this.name = name;
+          this.value = value;
+        }
+
        @Override
        public String generateComponent() {
-           return null;
+         return type + " " + name + " = " + value + "; \n";
        }
 
        @Override
        public String getComponentType() {
-         return null;
+         return type;
        }
    }
 
-   private static String createVariable(String name, String value) {
-     System.out.println(name + " " + value);
-       String type = objectTypes.get(value);
+   private static void  createVariable(String name, String value) {
+       String type = "float";
+       for(Map.Entry<String,String> tmp : objectTypes.entrySet()) {
+           if(tmp.getValue().equals(value))
+            type = tmp.getKey();
+       }
+       currentFunction.functionBody.add(new Variable(type, name, value));
        objectTypes.clear();
        clearExpressions();
-       return type + " " + name + " = " + value + ";";
    }
 
    private class MathOperation implements FunctionComponent {
