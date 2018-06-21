@@ -186,7 +186,7 @@ expr : CATCH expr						{  }
      | expr_100							{ $$ = $1; expressions.add($1); }
      ;
 
-expr_100 : expr_150 '=' expr_100 				{ $$ = createVariable($1, $3); }
+expr_100 : expr_150 '=' expr_100 				{ createVariable($1,$3); }
      | expr_150 '!' expr_100					{  }
      | expr_150							{ $$ = $1; }
      ;
@@ -543,6 +543,7 @@ private void yyerror(String msg) {
    }
 
    private static String createVariable(String name, String value) {
+     System.out.println(name + " " + value);
        String type = objectTypes.get(value);
        objectTypes.clear();
        return type + " " + name + " = " + value + ";";
@@ -580,7 +581,6 @@ private void yyerror(String msg) {
               ((LinkedList)expressions).addFirst("\"%f\"");
               break;
           } catch(Exception e) {
-              System.out.println("It was not a number");
           }
       }
      }
