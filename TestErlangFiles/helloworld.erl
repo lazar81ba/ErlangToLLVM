@@ -1,5 +1,2 @@
 main() ->
-      test().
-
-test() ->
-    io:fwrite(1+3).
+      io:fwrite(1+2).

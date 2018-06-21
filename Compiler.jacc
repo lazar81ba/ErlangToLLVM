@@ -572,8 +572,18 @@ private void yyerror(String msg) {
    }
 
    private static void createFunctionCall(String functionName){
-     if(functionName.equals("io:fwrite"))
+     if(functionName.equals("io:fwrite")) {
       functionName = "printf";
+      for(int i = 0 ; i<expressions.size(); i++) {
+          try {
+              float value = Float.parseFloat(expressions.get(i));
+              ((LinkedList)expressions).addFirst("\"%f\"");
+              break;
+          } catch(Exception e) {
+              System.out.println("It was not a number");
+          }
+      }
+     }
      currentFunction.functionBody.add(new Function(functionName, expressions));
      expressions.clear();
 
@@ -652,7 +662,7 @@ private void yyerror(String msg) {
        } else {
             ret = first - second;
        }
-       return "\"%f\", " + Float.toString(ret);
+       return Float.toString(ret);
    }
 
    private static String multDiv(String firstArg, String secondArg) {
@@ -664,7 +674,7 @@ private void yyerror(String msg) {
        } else {
             ret = first / second;
        }
-       return "\"%f\", " + Float.toString(ret);
+       return Float.toString(ret);
    }
 
    private String source;
