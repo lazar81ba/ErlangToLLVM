@@ -1,2 +1,2 @@
 
-main() -> io:fwrite(1+2).
+main() -> A=1.
